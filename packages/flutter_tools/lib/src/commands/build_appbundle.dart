@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'package:unified_analytics/unified_analytics.dart';
+
 import '../android/android_builder.dart';
 import '../android/build_validation.dart';
 import '../android/deferred_components_prebuild_validator.dart';
@@ -70,7 +72,7 @@ class BuildAppBundleCommand extends BuildSubCommand {
   final String name = 'appbundle';
 
   @override
-  DeprecationBehavior get deprecationBehavior => boolArgDeprecated('ignore-deprecation') ? DeprecationBehavior.ignore : DeprecationBehavior.exit;
+  DeprecationBehavior get deprecationBehavior => boolArg('ignore-deprecation') ? DeprecationBehavior.ignore : DeprecationBehavior.exit;
 
   @override
   Future<Set<DevelopmentArtifact>> get requiredArtifacts async => <DevelopmentArtifact>{
@@ -88,11 +90,11 @@ class BuildAppBundleCommand extends BuildSubCommand {
   Future<CustomDimensions> get usageValues async {
     String buildMode;
 
-    if (boolArgDeprecated('release')) {
+    if (boolArg('release')) {
       buildMode = 'release';
-    } else if (boolArgDeprecated('debug')) {
+    } else if (boolArg('debug')) {
       buildMode = 'debug';
-    } else if (boolArgDeprecated('profile')) {
+    } else if (boolArg('profile')) {
       buildMode = 'profile';
     } else {
       // The build defaults to release.
@@ -106,6 +108,29 @@ class BuildAppBundleCommand extends BuildSubCommand {
   }
 
   @override
+  Future<Event> unifiedAnalyticsUsageValues(String commandPath) async {
+    final String buildMode;
+
+    if (boolArg('release')) {
+      buildMode = 'release';
+    } else if (boolArg('debug')) {
+      buildMode = 'debug';
+    } else if (boolArg('profile')) {
+      buildMode = 'profile';
+    } else {
+      // The build defaults to release.
+      buildMode = 'release';
+    }
+
+    return Event.commandUsageValues(
+      workflow: commandPath,
+      commandHasTerminal: hasTerminal,
+      buildAppBundleTargetPlatform: stringsArg('target-platform').join(','),
+      buildAppBundleBuildMode: buildMode,
+    );
+  }
+
+  @override
   Future<FlutterCommandResult> runCommand() async {
     if (globals.androidSdk == null) {
       exitWithNoSdkMessage();
@@ -113,12 +138,12 @@ class BuildAppBundleCommand extends BuildSubCommand {
 
     final AndroidBuildInfo androidBuildInfo = AndroidBuildInfo(await getBuildInfo(),
       targetArchs: stringsArg('target-platform').map<AndroidArch>(getAndroidArchForName),
-      multidexEnabled: boolArgDeprecated('multidex'),
+      multidexEnabled: boolArg('multidex'),
     );
     // Do all setup verification that doesn't involve loading units. Checks that
     // require generated loading units are done after gen_snapshot in assemble.
     final List<DeferredComponent>? deferredComponents = FlutterProject.current().manifest.deferredComponents;
-    if (deferredComponents != null && boolArgDeprecated('deferred-components') && boolArgDeprecated('validate-deferred-components') && !boolArgDeprecated('debug')) {
+    if (deferredComponents != null && boolArg('deferred-components') && boolArg('validate-deferred-components') && !boolArg('debug')) {
       final DeferredComponentsPrebuildValidator validator = DeferredComponentsPrebuildValidator(
         FlutterProject.current().directory,
         globals.logger,
@@ -139,7 +164,7 @@ class BuildAppBundleCommand extends BuildSubCommand {
           .childDirectory(component.name)
           .childDirectory('intermediates')
           .childDirectory('flutter')
-          .childDirectory(androidBuildInfo.buildInfo.mode.name)
+          .childDirectory(androidBuildInfo.buildInfo.mode.cliName)
           .childDirectory('deferred_libs');
         if (deferredLibsIntermediate.existsSync()) {
           deferredLibsIntermediate.deleteSync(recursive: true);
@@ -154,8 +179,8 @@ class BuildAppBundleCommand extends BuildSubCommand {
       project: FlutterProject.current(),
       target: targetFile,
       androidBuildInfo: androidBuildInfo,
-      validateDeferredComponents: boolArgDeprecated('validate-deferred-components'),
-      deferredComponentsEnabled: boolArgDeprecated('deferred-components') && !boolArgDeprecated('debug'),
+      validateDeferredComponents: boolArg('validate-deferred-components'),
+      deferredComponentsEnabled: boolArg('deferred-components') && !boolArg('debug'),
     );
     return FlutterCommandResult.success();
   }

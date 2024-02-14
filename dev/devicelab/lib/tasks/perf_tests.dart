@@ -9,6 +9,7 @@ import 'dart:math' as math;
 
 import 'package:meta/meta.dart';
 import 'package:path/path.dart' as path;
+import 'package:xml/xml.dart';
 
 import '../framework/devices.dart';
 import '../framework/framework.dart';
@@ -26,7 +27,7 @@ String _testOutputDirectory(String testDirectory) {
 TaskFunction createComplexLayoutScrollPerfTest({
   bool measureCpuGpu = true,
   bool badScroll = false,
-  bool enableImpeller = false,
+  bool? enableImpeller,
 }) {
   return PerfTest(
     '${flutterDirectory.path}/dev/benchmarks/complex_layout',
@@ -39,7 +40,7 @@ TaskFunction createComplexLayoutScrollPerfTest({
   ).run;
 }
 
-TaskFunction createTilesScrollPerfTest({bool enableImpeller = false}) {
+TaskFunction createTilesScrollPerfTest({bool? enableImpeller}) {
   return PerfTest(
     '${flutterDirectory.path}/dev/benchmarks/complex_layout',
     'test_driver/scroll_perf.dart',
@@ -48,7 +49,7 @@ TaskFunction createTilesScrollPerfTest({bool enableImpeller = false}) {
   ).run;
 }
 
-TaskFunction createUiKitViewScrollPerfTest({bool enableImpeller = false}) {
+TaskFunction createUiKitViewScrollPerfTest({bool? enableImpeller}) {
   return PerfTest(
     '${flutterDirectory.path}/dev/benchmarks/platform_views_layout',
     'test_driver/uikit_view_scroll_perf.dart',
@@ -59,12 +60,25 @@ TaskFunction createUiKitViewScrollPerfTest({bool enableImpeller = false}) {
   ).run;
 }
 
-TaskFunction createAndroidTextureScrollPerfTest() {
+TaskFunction createUiKitViewScrollPerfNonIntersectingTest({bool? enableImpeller}) {
+  return PerfTest(
+    '${flutterDirectory.path}/dev/benchmarks/platform_views_layout',
+    'test_driver/uikit_view_scroll_perf_non_intersecting.dart',
+    'platform_views_scroll_perf_non_intersecting',
+    testDriver: 'test_driver/scroll_perf_non_intersecting_test.dart',
+    needsFullTimeline: false,
+    enableImpeller: enableImpeller,
+  ).run;
+}
+
+TaskFunction createAndroidTextureScrollPerfTest({bool? enableImpeller}) {
   return PerfTest(
     '${flutterDirectory.path}/dev/benchmarks/platform_views_layout',
     'test_driver/android_view_scroll_perf.dart',
     'platform_views_scroll_perf',
     testDriver: 'test_driver/scroll_perf_test.dart',
+    needsFullTimeline: false,
+    enableImpeller: enableImpeller,
   ).run;
 }
 
@@ -119,7 +133,7 @@ TaskFunction createCubicBezierPerfE2ETest() {
 
 TaskFunction createBackdropFilterPerfTest({
     bool measureCpuGpu = true,
-    bool enableImpeller = false,
+    bool? enableImpeller,
 }) {
   return PerfTest(
     '${flutterDirectory.path}/dev/benchmarks/macrobenchmarks',
@@ -163,7 +177,7 @@ TaskFunction createPostBackdropFilterPerfTest({bool measureCpuGpu = true}) {
 
 TaskFunction createSimpleAnimationPerfTest({
   bool measureCpuGpu = true,
-  bool enableImpeller = false,
+  bool? enableImpeller,
 }) {
   return PerfTest(
     '${flutterDirectory.path}/dev/benchmarks/macrobenchmarks',
@@ -219,10 +233,11 @@ TaskFunction createOpenPayScrollPerfTest({bool measureCpuGpu = true}) {
   ).run;
 }
 
-TaskFunction createFlutterGalleryStartupTest({String target = 'lib/main.dart'}) {
+TaskFunction createFlutterGalleryStartupTest({String target = 'lib/main.dart', Map<String, String>? runEnvironment}) {
   return StartupTest(
     '${flutterDirectory.path}/dev/integration_tests/flutter_gallery',
     target: target,
+    runEnvironment: runEnvironment,
   ).run;
 }
 
@@ -242,10 +257,6 @@ TaskFunction createHelloWorldCompileTest() {
 
 TaskFunction createWebCompileTest() {
   return const WebCompileTest().run;
-}
-
-TaskFunction createComplexLayoutCompileTest() {
-  return CompileTest('${flutterDirectory.path}/dev/benchmarks/complex_layout').run;
 }
 
 TaskFunction createFlutterViewStartupTest() {
@@ -297,6 +308,22 @@ TaskFunction createTextfieldPerfE2ETest() {
   ).run;
 }
 
+TaskFunction createVeryLongPictureScrollingPerfE2ETest({required bool enableImpeller}) {
+  return PerfTest.e2e(
+    '${flutterDirectory.path}/dev/benchmarks/macrobenchmarks',
+    'test/very_long_picture_scrolling_perf_e2e.dart',
+    enableImpeller: enableImpeller,
+  ).run;
+}
+TaskFunction createSlidersPerfTest() {
+  return PerfTest(
+    '${flutterDirectory.path}/dev/benchmarks/macrobenchmarks',
+    'test_driver/run_app.dart',
+    'sliders_perf',
+    testDriver: 'test_driver/sliders_perf_test.dart',
+  ).run;
+}
+
 TaskFunction createStackSizeTest() {
   final String testDirectory =
       '${flutterDirectory.path}/dev/benchmarks/macrobenchmarks';
@@ -344,7 +371,7 @@ TaskFunction createFullscreenTextfieldPerfTest() {
 }
 
 TaskFunction createFullscreenTextfieldPerfE2ETest({
-  bool enableImpeller = false,
+  bool? enableImpeller,
 }) {
   return PerfTest.e2e(
     '${flutterDirectory.path}/dev/benchmarks/macrobenchmarks',
@@ -370,7 +397,7 @@ TaskFunction createColorFilterAndFadePerfTest() {
   ).run;
 }
 
-TaskFunction createColorFilterAndFadePerfE2ETest({bool enableImpeller = false}) {
+TaskFunction createColorFilterAndFadePerfE2ETest({bool? enableImpeller}) {
   return PerfTest.e2e(
     '${flutterDirectory.path}/dev/benchmarks/macrobenchmarks',
     'test/color_filter_and_fade_perf_e2e.dart',
@@ -417,7 +444,7 @@ TaskFunction createFadingChildAnimationPerfTest() {
 }
 
 TaskFunction createImageFilteredTransformAnimationPerfTest({
-  bool enableImpeller = false,
+  bool? enableImpeller,
 }) {
   return PerfTest(
     '${flutterDirectory.path}/dev/benchmarks/macrobenchmarks',
@@ -436,7 +463,7 @@ TaskFunction createsMultiWidgetConstructPerfE2ETest() {
   ).run;
 }
 
-TaskFunction createListTextLayoutPerfE2ETest({bool enableImpeller = false}) {
+TaskFunction createListTextLayoutPerfE2ETest({bool? enableImpeller}) {
   return PerfTest.e2e(
     '${flutterDirectory.path}/dev/benchmarks/macrobenchmarks',
     'test/list_text_layout_perf_e2e.dart',
@@ -609,8 +636,101 @@ TaskFunction createGradientStaticPerfE2ETest() {
   ).run;
 }
 
+TaskFunction createAnimatedAdvancedBlendPerfTest({
+  bool? enableImpeller,
+  bool? forceOpenGLES,
+}) {
+  return PerfTest(
+    '${flutterDirectory.path}/dev/benchmarks/macrobenchmarks',
+    'test_driver/run_app.dart',
+    'animated_advanced_blend_perf',
+    enableImpeller: enableImpeller,
+    forceOpenGLES: forceOpenGLES,
+    testDriver: 'test_driver/animated_advanced_blend_perf_test.dart',
+    saveTraceFile: true,
+  ).run;
+}
+
+TaskFunction createAnimatedBlurBackropFilterPerfTest({
+  bool? enableImpeller,
+  bool? forceOpenGLES,
+}) {
+  return PerfTest(
+    '${flutterDirectory.path}/dev/benchmarks/macrobenchmarks',
+    'test_driver/run_app.dart',
+    'animated_blur_backdrop_filter_perf',
+    enableImpeller: enableImpeller,
+    forceOpenGLES: forceOpenGLES,
+    testDriver: 'test_driver/animated_blur_backdrop_filter_perf_test.dart',
+    saveTraceFile: true,
+  ).run;
+}
+
+TaskFunction createDrawPointsPerfTest({
+  bool? enableImpeller,
+}) {
+  return PerfTest(
+    '${flutterDirectory.path}/dev/benchmarks/macrobenchmarks',
+    'test_driver/run_app.dart',
+    'draw_points_perf',
+    enableImpeller: enableImpeller,
+    testDriver: 'test_driver/draw_points_perf_test.dart',
+    saveTraceFile: true,
+  ).run;
+}
+
+TaskFunction createDrawAtlasPerfTest({
+  bool? forceOpenGLES,
+}) {
+  return PerfTest(
+    '${flutterDirectory.path}/dev/benchmarks/macrobenchmarks',
+    'test_driver/run_app.dart',
+    'draw_atlas_perf',
+    enableImpeller: true,
+    testDriver: 'test_driver/draw_atlas_perf_test.dart',
+    saveTraceFile: true,
+    forceOpenGLES: forceOpenGLES,
+  ).run;
+}
+
+TaskFunction createDrawVerticesPerfTest({
+  bool? forceOpenGLES,
+}) {
+  return PerfTest(
+    '${flutterDirectory.path}/dev/benchmarks/macrobenchmarks',
+    'test_driver/run_app.dart',
+    'draw_vertices_perf',
+    enableImpeller: true,
+    testDriver: 'test_driver/draw_vertices_perf_test.dart',
+    saveTraceFile: true,
+    forceOpenGLES: forceOpenGLES,
+  ).run;
+}
+
+TaskFunction createPathTessellationStaticPerfTest() {
+  return PerfTest(
+    '${flutterDirectory.path}/dev/benchmarks/macrobenchmarks',
+    'test_driver/run_app.dart',
+    'tessellation_perf_static',
+    enableImpeller: true,
+    testDriver: 'test_driver/path_tessellation_static_perf_test.dart',
+    saveTraceFile: true,
+  ).run;
+}
+
+TaskFunction createPathTessellationDynamicPerfTest() {
+  return PerfTest(
+    '${flutterDirectory.path}/dev/benchmarks/macrobenchmarks',
+    'test_driver/run_app.dart',
+    'tessellation_perf_dynamic',
+    enableImpeller: true,
+    testDriver: 'test_driver/path_tessellation_dynamic_perf_test.dart',
+    saveTraceFile: true,
+  ).run;
+}
+
 TaskFunction createAnimatedComplexOpacityPerfE2ETest({
-  bool enableImpeller = false,
+  bool? enableImpeller,
 }) {
   return PerfTest.e2e(
     '${flutterDirectory.path}/dev/benchmarks/macrobenchmarks',
@@ -620,7 +740,7 @@ TaskFunction createAnimatedComplexOpacityPerfE2ETest({
 }
 
 TaskFunction createAnimatedComplexImageFilteredPerfE2ETest({
-  bool enableImpeller = false,
+  bool? enableImpeller,
 }) {
   return PerfTest.e2e(
     '${flutterDirectory.path}/dev/benchmarks/macrobenchmarks',
@@ -647,13 +767,76 @@ Map<String, dynamic> _average(List<Map<String, dynamic>> results, int iterations
   return tally;
 }
 
+/// Opens the file at testDirectory + 'android/app/src/main/AndroidManifest.xml'
+/// and adds the following entry to the application.
+/// <meta-data
+///   android:name="io.flutter.embedding.android.ImpellerBackend"
+///   android:value="opengles" />
+void _addOpenGLESToManifest(String testDirectory) {
+  final String manifestPath = path.join(
+      testDirectory, 'android', 'app', 'src', 'main', 'AndroidManifest.xml');
+  final File file = File(manifestPath);
+
+  if (!file.existsSync()) {
+    throw Exception('AndroidManifest.xml not found at $manifestPath');
+  }
+
+  final String xmlStr = file.readAsStringSync();
+  final XmlDocument xmlDoc = XmlDocument.parse(xmlStr);
+  const String key = 'io.flutter.embedding.android.ImpellerBackend';
+  const String value = 'opengles';
+
+  final XmlElement applicationNode =
+      xmlDoc.findAllElements('application').first;
+
+  // Check if the meta-data node already exists.
+  final Iterable<XmlElement> existingMetaData = applicationNode
+      .findAllElements('meta-data')
+      .where((XmlElement node) => node.getAttribute('android:name') == key);
+
+  if (existingMetaData.isNotEmpty) {
+    final XmlElement existingEntry = existingMetaData.first;
+    existingEntry.setAttribute('android:value', value);
+  } else {
+    final XmlElement metaData = XmlElement(
+      XmlName('meta-data'),
+      <XmlAttribute>[
+        XmlAttribute(XmlName('android:name'), key),
+        XmlAttribute(XmlName('android:value'), value)
+      ],
+    );
+
+    applicationNode.children.add(metaData);
+  }
+
+  file.writeAsStringSync(xmlDoc.toXmlString(pretty: true, indent: '    '));
+}
+
+Future<void> _resetManifest(String testDirectory) async {
+  final String manifestPath = path.join(
+      testDirectory, 'android', 'app', 'src', 'main', 'AndroidManifest.xml');
+  final File file = File(manifestPath);
+
+  if (!file.existsSync()) {
+    throw Exception('AndroidManifest.xml not found at $manifestPath');
+  }
+
+  await exec('git', <String>['checkout', file.path]);
+}
+
 /// Measure application startup performance.
 class StartupTest {
-  const StartupTest(this.testDirectory, { this.reportMetrics = true, this.target = 'lib/main.dart' });
+  const StartupTest(
+    this.testDirectory, {
+    this.reportMetrics = true,
+    this.target = 'lib/main.dart',
+    this.runEnvironment,
+  });
 
   final String testDirectory;
   final bool reportMetrics;
   final String target;
+  final Map<String, String>? runEnvironment;
 
   Future<TaskResult> run() async {
     return inDirectory<TaskResult>(testDirectory, () async {
@@ -674,7 +857,6 @@ class StartupTest {
             '--target=$target',
           ]);
           applicationBinaryPath = '$testDirectory/build/app/outputs/flutter-apk/app-profile.apk';
-          break;
         case DeviceOperatingSystem.androidArm:
           await flutter('build', options: <String>[
             'apk',
@@ -684,7 +866,6 @@ class StartupTest {
             '--target=$target',
           ]);
           applicationBinaryPath = '$testDirectory/build/app/outputs/flutter-apk/app-profile.apk';
-          break;
         case DeviceOperatingSystem.androidArm64:
           await flutter('build', options: <String>[
             'apk',
@@ -694,9 +875,9 @@ class StartupTest {
             '--target=$target',
           ]);
           applicationBinaryPath = '$testDirectory/build/app/outputs/flutter-apk/app-profile.apk';
-          break;
         case DeviceOperatingSystem.fake:
         case DeviceOperatingSystem.fuchsia:
+        case DeviceOperatingSystem.linux:
           break;
         case DeviceOperatingSystem.ios:
         case DeviceOperatingSystem.macos:
@@ -708,7 +889,6 @@ class StartupTest {
           ]);
           final String buildRoot = path.join(testDirectory, 'build');
           applicationBinaryPath = _findDarwinAppInBuildDirectory(buildRoot);
-          break;
         case DeviceOperatingSystem.windows:
           await flutter('build', options: <String>[
             'windows',
@@ -721,28 +901,46 @@ class StartupTest {
             testDirectory,
             'build',
             'windows',
+            'x64',
             'runner',
             'Profile',
             '$basename.exe'
           );
-          break;
       }
 
       const int maxFailures = 3;
       int currentFailures = 0;
       for (int i = 0; i < iterations; i += 1) {
-        final int result = await flutter('run', options: <String>[
-          '--no-android-gradle-daemon',
-          '--no-publish-port',
-          '--verbose',
-          '--profile',
-          '--trace-startup',
-          '--target=$target',
-          '-d',
-          device.deviceId,
-          if (applicationBinaryPath != null)
-            '--use-application-binary=$applicationBinaryPath',
-         ], canFail: true);
+        // Startup should not take more than a few minutes. After 10 minutes,
+        // take a screenshot to help debug.
+        final Timer timer = Timer(const Duration(minutes: 10), () async {
+          print('Startup not completed within 10 minutes. Taking a screenshot...');
+          await _flutterScreenshot(
+            device.deviceId,
+            'screenshot_startup_${DateTime.now().toLocal().toIso8601String()}.png',
+          );
+        });
+        final int result = await flutter(
+          'run',
+          options: <String>[
+            '--no-android-gradle-daemon',
+            '--no-publish-port',
+            '--verbose',
+            '--profile',
+            '--trace-startup',
+            // TODO(vashworth): Remove once done debugging https://github.com/flutter/flutter/issues/129836
+            if (device is IosDevice)
+              '--verbose-system-logs',
+            '--target=$target',
+            '-d',
+            device.deviceId,
+            if (applicationBinaryPath != null)
+              '--use-application-binary=$applicationBinaryPath',
+          ],
+          environment: runEnvironment,
+          canFail: true,
+        );
+        timer.cancel();
         if (result == 0) {
           final Map<String, dynamic> data = json.decode(
             file('${_testOutputDirectory(testDirectory)}/start_up_info.json').readAsStringSync(),
@@ -750,20 +948,10 @@ class StartupTest {
           results.add(data);
         } else {
           currentFailures += 1;
-          if (hostAgent.dumpDirectory != null) {
-            await flutter(
-              'screenshot',
-              options: <String>[
-                '-d',
-                device.deviceId,
-                '--out',
-                hostAgent.dumpDirectory!
-                    .childFile('screenshot_startup_failure_$currentFailures.png')
-                    .path,
-              ],
-              canFail: true,
-            );
-          }
+          await _flutterScreenshot(
+            device.deviceId,
+            'screenshot_startup_failure_$currentFailures.png',
+          );
           i -= 1;
           if (currentFailures == maxFailures) {
             return TaskResult.failure('Application failed to start $maxFailures times');
@@ -789,6 +977,23 @@ class StartupTest {
       ]);
     });
   }
+
+  Future<void> _flutterScreenshot(String deviceId, String screenshotName) async {
+    if (hostAgent.dumpDirectory != null) {
+      await flutter(
+        'screenshot',
+        options: <String>[
+          '-d',
+          deviceId,
+          '--out',
+          hostAgent.dumpDirectory!
+              .childFile(screenshotName)
+              .path,
+        ],
+        canFail: true,
+      );
+    }
+  }
 }
 
 /// A one-off test to verify that devtools starts in profile mode.
@@ -812,7 +1017,6 @@ class DevtoolsStartupTest {
             '--target-platform=android-arm,android-arm64',
           ]);
           applicationBinaryPath = '$testDirectory/build/app/outputs/flutter-apk/app-profile.apk';
-          break;
         case DeviceOperatingSystem.androidArm:
           await flutter('build', options: <String>[
             'apk',
@@ -821,7 +1025,6 @@ class DevtoolsStartupTest {
             '--target-platform=android-arm',
           ]);
           applicationBinaryPath = '$testDirectory/build/app/outputs/flutter-apk/app-profile.apk';
-          break;
         case DeviceOperatingSystem.androidArm64:
           await flutter('build', options: <String>[
             'apk',
@@ -830,7 +1033,6 @@ class DevtoolsStartupTest {
             '--target-platform=android-arm64',
           ]);
           applicationBinaryPath = '$testDirectory/build/app/outputs/flutter-apk/app-profile.apk';
-          break;
         case DeviceOperatingSystem.ios:
           await flutter('build', options: <String>[
             'ios',
@@ -838,25 +1040,27 @@ class DevtoolsStartupTest {
             '--profile',
           ]);
           applicationBinaryPath = _findDarwinAppInBuildDirectory('$testDirectory/build/ios/iphoneos');
-          break;
         case DeviceOperatingSystem.fake:
         case DeviceOperatingSystem.fuchsia:
+        case DeviceOperatingSystem.linux:
         case DeviceOperatingSystem.macos:
         case DeviceOperatingSystem.windows:
           break;
       }
 
-      final Process process = await startProcess(path.join(flutterDirectory.path, 'bin', 'flutter'), <String>[
+      final Process process = await startFlutter(
         'run',
-        '--no-android-gradle-daemon',
-        '--no-publish-port',
-        '--verbose',
-        '--profile',
-        '-d',
-        device.deviceId,
-        if (applicationBinaryPath != null)
-          '--use-application-binary=$applicationBinaryPath',
-       ]);
+        options: <String>[
+          '--no-android-gradle-daemon',
+          '--no-publish-port',
+          '--verbose',
+          '--profile',
+          '-d',
+          device.deviceId,
+          if (applicationBinaryPath != null)
+            '--use-application-binary=$applicationBinaryPath',
+       ],
+      );
       final Completer<void> completer = Completer<void>();
       bool sawLine = false;
       process.stdout
@@ -908,6 +1112,7 @@ class PerfTest {
     this.timelineFileName, {
     this.measureCpuGpu = true,
     this.measureMemory = true,
+    this.measureTotalGCTime = true,
     this.saveTraceFile = false,
     this.testDriver,
     this.needsFullTimeline = true,
@@ -916,8 +1121,9 @@ class PerfTest {
     String? resultFilename,
     this.device,
     this.flutterDriveCallback,
-    this.enableImpeller = false,
     this.timeoutSeconds,
+    this.enableImpeller,
+    this.forceOpenGLES,
   }): _resultFilename = resultFilename;
 
   const PerfTest.e2e(
@@ -925,6 +1131,7 @@ class PerfTest {
     this.testTarget, {
     this.measureCpuGpu = false,
     this.measureMemory = false,
+    this.measureTotalGCTime = false,
     this.testDriver =  'test_driver/e2e_test.dart',
     this.needsFullTimeline = false,
     this.benchmarkScoreKeys = _kCommonScoreKeys,
@@ -932,8 +1139,9 @@ class PerfTest {
     String resultFilename = 'e2e_perf_summary',
     this.device,
     this.flutterDriveCallback,
-    this.enableImpeller = false,
     this.timeoutSeconds,
+    this.enableImpeller,
+    this.forceOpenGLES,
   }) : saveTraceFile = false, timelineFileName = null, _resultFilename = resultFilename;
 
   /// The directory where the app under test is defined.
@@ -951,6 +1159,8 @@ class PerfTest {
   final bool measureCpuGpu;
   /// Whether to collect memory metrics.
   final bool measureMemory;
+  /// Whether to summarize total GC time on the UI thread from the timeline.
+  final bool measureTotalGCTime;
   /// Whether to collect full timeline, meaning if `--trace-startup` flag is needed.
   final bool needsFullTimeline;
   /// Whether to save the trace timeline file `*.timeline.json`.
@@ -966,7 +1176,10 @@ class PerfTest {
   final FlutterDriveCallback? flutterDriveCallback;
 
   /// Whether the perf test should enable Impeller.
-  final bool enableImpeller;
+  final bool? enableImpeller;
+
+  /// Whether the perf test force Impeller's OpenGLES backend.
+  final bool? forceOpenGLES;
 
   /// Number of seconds to time out the test after, allowing debug callbacks to run.
   final int? timeoutSeconds;
@@ -1014,23 +1227,37 @@ class PerfTest {
       await selectedDevice.unlock();
       final String deviceId = selectedDevice.deviceId;
       final String? localEngine = localEngineFromEnv;
+      final String? localEngineHost = localEngineHostFromEnv;
       final String? localEngineSrcPath = localEngineSrcPathFromEnv;
 
-      final List<String> options = <String>[
-        if (localEngine != null)
-          ...<String>['--local-engine', localEngine],
-        if (localEngineSrcPath != null)
-          ...<String>['--local-engine-src-path', localEngineSrcPath],
-        '--no-dds',
-        '--no-android-gradle-daemon',
-        '-v',
-        '--verbose-system-logs',
-        '--profile',
-        if (timeoutSeconds != null)
-          ...<String>[
+      Future<void> Function()? manifestReset;
+      if (forceOpenGLES ?? false) {
+        assert(enableImpeller!);
+        _addOpenGLESToManifest(testDirectory);
+        manifestReset = () => _resetManifest(testDirectory);
+      }
+
+      try {
+        final List<String> options = <String>[
+          if (localEngine != null) ...<String>['--local-engine', localEngine],
+          if (localEngineHost != null) ...<String>[
+            '--local-engine-host',
+            localEngineHost
+          ],
+          if (localEngineSrcPath != null) ...<String>[
+            '--local-engine-src-path',
+            localEngineSrcPath
+          ],
+          '--no-dds',
+          '--no-android-gradle-daemon',
+          '-v',
+          '--verbose-system-logs',
+          '--profile',
+          if (timeoutSeconds != null) ...<String>[
             '--timeout',
             timeoutSeconds.toString(),
           ],
+<<<<<<< HEAD
         if (needsFullTimeline)
           '--trace-startup', // Enables "endless" timeline event buffering.
         '-t', testTarget,
@@ -1048,7 +1275,34 @@ class PerfTest {
         flutterDriveCallback!(options);
       } else {
         await flutter('drive', options: options);
+=======
+          if (needsFullTimeline)
+            '--trace-startup', // Enables "endless" timeline event buffering.
+          '-t', testTarget,
+          if (testDriver != null) ...<String>['--driver', testDriver!],
+          if (existingApp != null) ...<String>[
+            '--use-existing-app',
+            existingApp
+          ],
+          if (dartDefine.isNotEmpty) ...<String>['--dart-define', dartDefine],
+          if (enableImpeller != null && enableImpeller!) '--enable-impeller',
+          if (enableImpeller != null && !enableImpeller!)
+            '--no-enable-impeller',
+          '-d',
+          deviceId,
+        ];
+        if (flutterDriveCallback != null) {
+          flutterDriveCallback!(options);
+        } else {
+          await flutter('drive', options: options);
+        }
+      } finally {
+        if (manifestReset != null) {
+          await manifestReset();
+        }
+>>>>>>> 41456452f29d64e8deb623a3c927524bcf9f111b
       }
+
       final Map<String, dynamic> data = json.decode(
         file('${_testOutputDirectory(testDirectory)}/$resultFilename.json').readAsStringSync(),
       ) as Map<String, dynamic>;
@@ -1085,6 +1339,7 @@ class PerfTest {
             if (data['90th_percentile_memory_usage'] != null) '90th_percentile_memory_usage',
             if (data['99th_percentile_memory_usage'] != null) '99th_percentile_memory_usage',
           ],
+          if (measureTotalGCTime) 'total_ui_gc_time',
           if (data['30hz_frame_percentage'] != null) '30hz_frame_percentage',
           if (data['60hz_frame_percentage'] != null) '60hz_frame_percentage',
           if (data['80hz_frame_percentage'] != null) '80hz_frame_percentage',
@@ -1122,7 +1377,6 @@ const List<String> _kCommonScoreKeys = <String>[
   '90th_percentile_picture_cache_memory',
   '99th_percentile_picture_cache_memory',
   'worst_picture_cache_memory',
-  'new_gen_gc_count',
   'old_gen_gc_count',
 ];
 
@@ -1173,6 +1427,7 @@ class WebCompileTest {
     return inDirectory<Map<String, int>>(directory, () async {
       final Map<String, int> metrics = <String, int>{};
 
+      await flutter('clean');
       await flutter('packages', options: <String>['get']);
       final Stopwatch? watch = measureBuildTime ? Stopwatch() : null;
       watch?.start();
@@ -1181,6 +1436,7 @@ class WebCompileTest {
         '-v',
         '--release',
         '--no-pub',
+        '--no-web-resources-cdn',
       ]);
       watch?.stop();
       final String buildDir = path.join(directory, 'build', 'web');
@@ -1368,7 +1624,6 @@ class CompileTest {
           );
           metrics.addAll(sizeMetrics);
         }
-        break;
       case DeviceOperatingSystem.android:
       case DeviceOperatingSystem.androidArm:
         options.insert(0, 'apk');
@@ -1384,7 +1639,6 @@ class CompileTest {
         if (reportPackageContentSizes) {
           metrics.addAll(await getSizesFromApk(apkPath));
         }
-        break;
       case DeviceOperatingSystem.androidArm64:
         options.insert(0, 'apk');
         options.add('--target-platform=android-arm64');
@@ -1399,11 +1653,12 @@ class CompileTest {
         if (reportPackageContentSizes) {
           metrics.addAll(await getSizesFromApk(apkPath));
         }
-        break;
       case DeviceOperatingSystem.fake:
         throw Exception('Unsupported option for fake devices');
       case DeviceOperatingSystem.fuchsia:
         throw Exception('Unsupported option for Fuchsia devices');
+      case DeviceOperatingSystem.linux:
+        throw Exception('Unsupported option for Linux devices');
       case DeviceOperatingSystem.windows:
         unawaited(stderr.flush());
         options.insert(0, 'windows');
@@ -1417,6 +1672,7 @@ class CompileTest {
           cwd,
           'build',
           'windows',
+          'x64',
           'runner',
           'release',
           '$basename.exe');
@@ -1425,7 +1681,6 @@ class CompileTest {
         // rather a directory containing an .exe and .dll files.
         // The release size is set to the size of the produced .exe file
         releaseSizeInBytes = exe.lengthSync();
-        break;
     }
 
     metrics.addAll(<String, dynamic>{
@@ -1453,28 +1708,25 @@ class CompileTest {
     switch (deviceOperatingSystem) {
       case DeviceOperatingSystem.ios:
         options.insert(0, 'ios');
-        break;
       case DeviceOperatingSystem.android:
       case DeviceOperatingSystem.androidArm:
         options.insert(0, 'apk');
         options.add('--target-platform=android-arm');
-        break;
       case DeviceOperatingSystem.androidArm64:
         options.insert(0, 'apk');
         options.add('--target-platform=android-arm64');
-        break;
       case DeviceOperatingSystem.fake:
         throw Exception('Unsupported option for fake devices');
       case DeviceOperatingSystem.fuchsia:
         throw Exception('Unsupported option for Fuchsia devices');
+      case DeviceOperatingSystem.linux:
+        throw Exception('Unsupported option for Linux devices');
       case DeviceOperatingSystem.macos:
         unawaited(stderr.flush());
         options.insert(0, 'macos');
-        break;
       case DeviceOperatingSystem.windows:
         unawaited(stderr.flush());
         options.insert(0, 'windows');
-        break;
     }
     watch.start();
     await flutter('build', options: options);
@@ -1502,7 +1754,6 @@ class CompileTest {
           'Flutter.framework',
           'Flutter',
         ));
-        break;
       case DeviceOperatingSystem.macos:
         frameworkDirectory = path.join(
           appPath,
@@ -1514,12 +1765,12 @@ class CompileTest {
           'FlutterMacOS.framework',
           'FlutterMacOS',
         )); // https://github.com/flutter/flutter/issues/70413
-        break;
       case DeviceOperatingSystem.android:
       case DeviceOperatingSystem.androidArm:
       case DeviceOperatingSystem.androidArm64:
       case DeviceOperatingSystem.fake:
       case DeviceOperatingSystem.fuchsia:
+      case DeviceOperatingSystem.linux:
       case DeviceOperatingSystem.windows:
         throw Exception('Called ${CompileTest.getSizesFromDarwinApp} with $operatingSystem.');
     }
@@ -1868,10 +2119,7 @@ class _UnzipListEntry {
     required this.uncompressedSize,
     required this.compressedSize,
     required this.path,
-  }) : assert(uncompressedSize != null),
-       assert(compressedSize != null),
-       assert(compressedSize <= uncompressedSize),
-       assert(path != null);
+  }) : assert(compressedSize <= uncompressedSize);
 
   final int uncompressedSize;
   final int compressedSize;

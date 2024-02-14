@@ -8,15 +8,20 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/rendering.dart';
 
+import 'color_scheme.dart';
 import 'debug.dart';
 import 'icon_button.dart';
 import 'icons.dart';
 import 'material.dart';
 import 'material_localizations.dart';
+import 'theme.dart';
 
 const double _kToolbarHeight = 44.0;
+<<<<<<< HEAD
 
 // Padding between the toolbar and the anchor.
+=======
+>>>>>>> 41456452f29d64e8deb623a3c927524bcf9f111b
 const double _kToolbarContentDistance = 8.0;
 
 /// A fully-functional Material-style text selection toolbar.
@@ -79,6 +84,14 @@ class TextSelectionToolbar extends StatelessWidget {
   final ToolbarBuilder toolbarBuilder;
 
   /// The size of the text selection handles.
+<<<<<<< HEAD
+=======
+  ///
+  /// See also:
+  ///
+  ///  * [SpellCheckSuggestionsToolbar], which references this value to calculate
+  ///    the padding between the toolbar and anchor.
+>>>>>>> 41456452f29d64e8deb623a3c927524bcf9f111b
   static const double kHandleSize = 22.0;
 
   /// Padding between the toolbar and the anchor.
@@ -100,7 +113,11 @@ class TextSelectionToolbar extends StatelessWidget {
         anchorBelow + const Offset(0.0, kToolbarContentDistanceBelow);
 
     const double screenPadding = CupertinoTextSelectionToolbar.kToolbarScreenPadding;
+<<<<<<< HEAD
     final double paddingAbove = MediaQuery.of(context).padding.top
+=======
+    final double paddingAbove = MediaQuery.paddingOf(context).top
+>>>>>>> 41456452f29d64e8deb623a3c927524bcf9f111b
         + screenPadding;
     final double availableHeight = anchorAbovePadded.dy - _kToolbarContentDistance - paddingAbove;
     final bool fitsAbove = _kToolbarHeight <= availableHeight;
@@ -238,8 +255,7 @@ class _TextSelectionToolbarTrailingEdgeAlign extends SingleChildRenderObjectWidg
     required Widget super.child,
     required this.overflowOpen,
     required this.textDirection,
-  }) : assert(child != null),
-       assert(overflowOpen != null);
+  });
 
   final bool overflowOpen;
   final TextDirection textDirection;
@@ -363,13 +379,11 @@ class _TextSelectionToolbarTrailingEdgeAlignRenderBox extends RenderProxyBox {
 // Renders the menu items in the correct positions in the menu and its overflow
 // submenu based on calculating which item would first overflow.
 class _TextSelectionToolbarItemsLayout extends MultiChildRenderObjectWidget {
-  _TextSelectionToolbarItemsLayout({
+  const _TextSelectionToolbarItemsLayout({
     required this.isAbove,
     required this.overflowOpen,
     required super.children,
-  }) : assert(children != null),
-       assert(isAbove != null),
-       assert(overflowOpen != null);
+  });
 
   final bool isAbove;
   final bool overflowOpen;
@@ -412,9 +426,7 @@ class _RenderTextSelectionToolbarItemsLayout extends RenderBox with ContainerRen
   _RenderTextSelectionToolbarItemsLayout({
     required bool isAbove,
     required bool overflowOpen,
-  }) : assert(overflowOpen != null),
-       assert(isAbove != null),
-       _isAbove = isAbove,
+  }) : _isAbove = isAbove,
        _overflowOpen = overflowOpen,
        super();
 
@@ -652,13 +664,34 @@ class _TextSelectionToolbarContainer extends StatelessWidget {
 
   final Widget child;
 
+  // These colors were taken from a screenshot of a Pixel 6 emulator running
+  // Android API level 34.
+  static const Color _defaultColorLight = Color(0xffffffff);
+  static const Color _defaultColorDark = Color(0xff424242);
+
+  static Color _getColor(ColorScheme colorScheme) {
+    final bool isDefaultSurface = switch (colorScheme.brightness) {
+      Brightness.light => identical(ThemeData().colorScheme.surface, colorScheme.surface),
+      Brightness.dark => identical(ThemeData.dark().colorScheme.surface, colorScheme.surface),
+    };
+    if (!isDefaultSurface) {
+      return colorScheme.surface;
+    }
+    return switch (colorScheme.brightness) {
+      Brightness.light => _defaultColorLight,
+      Brightness.dark => _defaultColorDark,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
     return Material(
       // This value was eyeballed to match the native text selection menu on
-      // a Pixel 2 running Android 10.
-      borderRadius: const BorderRadius.all(Radius.circular(7.0)),
+      // a Pixel 6 emulator running Android API level 34.
+      borderRadius: const BorderRadius.all(Radius.circular(_kToolbarHeight / 2)),
       clipBehavior: Clip.antiAlias,
+      color: _getColor(theme.colorScheme),
       elevation: 1.0,
       type: MaterialType.card,
       child: child,

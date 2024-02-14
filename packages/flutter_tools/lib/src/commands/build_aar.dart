@@ -2,11 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'package:unified_analytics/unified_analytics.dart';
+
 import '../android/android_builder.dart';
 import '../android/android_sdk.dart';
 import '../android/gradle_utils.dart';
 import '../base/common.dart';
-
 import '../base/file_system.dart';
 import '../base/os.dart';
 import '../build_info.dart';
@@ -76,17 +77,15 @@ class BuildAarCommand extends BuildSubCommand {
     DevelopmentArtifact.androidGenSnapshot,
   };
 
+  late final FlutterProject project = _getProject();
+
   @override
   Future<CustomDimensions> get usageValues async {
-    final FlutterProject flutterProject = _getProject();
-    if (flutterProject == null) {
-      return const CustomDimensions();
-    }
 
     String projectType;
-    if (flutterProject.manifest.isModule) {
+    if (project.manifest.isModule) {
       projectType = 'module';
-    } else if (flutterProject.manifest.isPlugin) {
+    } else if (project.manifest.isPlugin) {
       projectType = 'plugin';
     } else {
       projectType = 'app';
@@ -99,12 +98,30 @@ class BuildAarCommand extends BuildSubCommand {
   }
 
   @override
+  Future<Event> unifiedAnalyticsUsageValues(String commandPath) async {
+    final String projectType;
+    if (project.manifest.isModule) {
+      projectType = 'module';
+    } else if (project.manifest.isPlugin) {
+      projectType = 'plugin';
+    } else {
+      projectType = 'app';
+    }
+
+    return Event.commandUsageValues(
+      workflow: commandPath,
+      commandHasTerminal: hasTerminal,
+      buildAarProjectType: projectType,
+      buildAarTargetPlatform: stringsArg('target-platform').join(','),
+    );
+  }
+
+  @override
   final String description = 'Build a repository containing an AAR and a POM file.\n\n'
       'By default, AARs are built for `release`, `debug` and `profile`.\n'
       'The POM file is used to include the dependencies that the AAR was compiled against.\n'
-      'To learn more about how to use these artifacts, see '
-      'https://flutter.dev/go/build-aar\n'
-      'Note: this command builds applications assuming that the entrypoint is lib/main.dart. '
+      'To learn more about how to use these artifacts, see: https://flutter.dev/go/build-aar\n'
+      'This command assumes that the entrypoint is "lib/main.dart". '
       'This cannot currently be configured.';
 
   @override
@@ -117,7 +134,7 @@ class BuildAarCommand extends BuildSubCommand {
     final Iterable<AndroidArch> targetArchitectures =
         stringsArg('target-platform').map<AndroidArch>(getAndroidArchForName);
 
-    final String? buildNumberArg = stringArgDeprecated('build-number');
+    final String? buildNumberArg = stringArg('build-number');
     final String buildNumber = argParser.options.containsKey('build-number')
       && buildNumberArg != null
       && buildNumberArg.isNotEmpty
@@ -126,11 +143,11 @@ class BuildAarCommand extends BuildSubCommand {
 
     final File targetFile = _fileSystem.file(_fileSystem.path.join('lib', 'main.dart'));
     for (final String buildMode in const <String>['debug', 'profile', 'release']) {
-      if (boolArgDeprecated(buildMode)) {
+      if (boolArg(buildMode)) {
         androidBuildInfo.add(
           AndroidBuildInfo(
             await getBuildInfo(
-              forcedBuildMode: BuildMode.fromName(buildMode),
+              forcedBuildMode: BuildMode.fromCliName(buildMode),
               forcedTargetFile: targetFile,
             ),
             targetArchs: targetArchitectures,

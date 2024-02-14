@@ -4,6 +4,7 @@
 
 import 'package:args/args.dart';
 import 'package:meta/meta.dart';
+import 'package:unified_analytics/unified_analytics.dart';
 
 import '../artifacts.dart';
 import '../base/common.dart';
@@ -18,7 +19,6 @@ import '../build_system/targets/deferred_components.dart';
 import '../build_system/targets/ios.dart';
 import '../build_system/targets/linux.dart';
 import '../build_system/targets/macos.dart';
-import '../build_system/targets/web.dart';
 import '../build_system/targets/windows.dart';
 import '../cache.dart';
 import '../convert.dart';
@@ -48,8 +48,6 @@ List<Target> _kDefaultTargets = <Target>[
   const ProfileBundleLinuxAssets(TargetPlatform.linux_arm64),
   const ReleaseBundleLinuxAssets(TargetPlatform.linux_x64),
   const ReleaseBundleLinuxAssets(TargetPlatform.linux_arm64),
-  // Web targets
-  WebServiceWorker(globals.fs, globals.cache),
   const ReleaseAndroidApplication(),
   // This is a one-off rule for bundle and aot compat.
   const CopyFlutterBundle(),
@@ -129,6 +127,8 @@ class AssembleCommand extends FlutterCommand {
 
   final BuildSystem _buildSystem;
 
+  late final FlutterProject _flutterProject = FlutterProject.current();
+
   @override
   String get description => 'Assemble and build Flutter resources.';
 
@@ -139,25 +139,22 @@ class AssembleCommand extends FlutterCommand {
   String get category => FlutterCommandCategory.project;
 
   @override
-  Future<CustomDimensions> get usageValues async {
-    final FlutterProject flutterProject = FlutterProject.current();
-    if (flutterProject == null) {
-      return const CustomDimensions();
-    }
-    try {
-      return CustomDimensions(
-        commandBuildBundleTargetPlatform: environment.defines[kTargetPlatform],
-        commandBuildBundleIsModule: flutterProject.isModule,
-      );
-    } on Exception {
-      // We've failed to send usage.
-    }
-    return const CustomDimensions();
-  }
+  Future<CustomDimensions> get usageValues async => CustomDimensions(
+    commandBuildBundleTargetPlatform: _environment.defines[kTargetPlatform],
+    commandBuildBundleIsModule: _flutterProject.isModule,
+  );
+
+  @override
+  Future<Event> unifiedAnalyticsUsageValues(String commandPath) async => Event.commandUsageValues(
+    workflow: commandPath,
+    commandHasTerminal: hasTerminal,
+    buildBundleTargetPlatform: _environment.defines[kTargetPlatform],
+    buildBundleIsModule: _flutterProject.isModule,
+  );
 
   @override
   Future<Set<DevelopmentArtifact>> get requiredArtifacts async {
-    final String? platform = environment.defines[kTargetPlatform];
+    final String? platform = _environment.defines[kTargetPlatform];
     if (platform == null) {
       return super.requiredArtifacts;
     }
@@ -210,26 +207,25 @@ class AssembleCommand extends FlutterCommand {
     return false;
   }
 
-  late final Environment environment = createEnvironment();
+  late final Environment _environment = _createEnvironment();
 
   /// The environmental configuration for a build invocation.
-  Environment createEnvironment() {
-    final FlutterProject flutterProject = FlutterProject.current();
-    String? output = stringArgDeprecated('output');
+  Environment _createEnvironment() {
+    String? output = stringArg('output');
     if (output == null) {
       throwToolExit('--output directory is required for assemble.');
     }
     // If path is relative, make it absolute from flutter project.
     if (globals.fs.path.isRelative(output)) {
-      output = globals.fs.path.join(flutterProject.directory.path, output);
+      output = globals.fs.path.join(_flutterProject.directory.path, output);
     }
     final Artifacts artifacts = globals.artifacts!;
     final Environment result = Environment(
       outputDir: globals.fs.directory(output),
-      buildDir: flutterProject.directory
+      buildDir: _flutterProject.directory
           .childDirectory('.dart_tool')
           .childDirectory('flutter_build'),
-      projectDir: flutterProject.directory,
+      projectDir: _flutterProject.directory,
       defines: _parseDefines(stringsArg('define')),
       inputs: _parseDefines(stringsArg('input')),
       cacheDir: globals.cache.getRoot(),
@@ -264,30 +260,14 @@ class AssembleCommand extends FlutterCommand {
       results[kExtraGenSnapshotOptions] = (argumentResults[FlutterOptions.kExtraGenSnapshotOptions] as List<String>).join(',');
     }
 
-    List<String> dartDefines = <String>[];
-    if (argumentResults.wasParsed(FlutterOptions.kDartDefinesOption)) {
-      dartDefines = argumentResults[FlutterOptions.kDartDefinesOption] as List<String>;
-    }
-    if (argumentResults.wasParsed(FlutterOptions.kDartDefineFromFileOption)) {
-      final String? configJsonPath = stringArg(FlutterOptions.kDartDefineFromFileOption);
-      if (configJsonPath != null && globals.fs.isFileSync(configJsonPath)) {
-        final String configJsonRaw = globals.fs.file(configJsonPath).readAsStringSync();
-        try {
-          (json.decode(configJsonRaw) as Map<String, dynamic>).forEach((String key, dynamic value) {
-            dartDefines.add('$key=$value');
-          });
-        } on FormatException catch (err) {
-          throwToolExit('Json config define file "--${FlutterOptions.kDartDefineFromFileOption}=$configJsonPath" format err, '
-              'please fix first! format err:\n$err');
-        }
-      }
-    }
-    if(dartDefines.isNotEmpty){
+    final Map<String, Object?> defineConfigJsonMap = extractDartDefineConfigJsonMap();
+    final List<String> dartDefines = extractDartDefines(defineConfigJsonMap: defineConfigJsonMap);
+    if (dartDefines.isNotEmpty){
       results[kDartDefines] = dartDefines.join(',');
     }
 
     results[kDeferredComponents] = 'false';
-    if (FlutterProject.current().manifest.deferredComponents != null && isDeferredComponentsTargets() && !isDebug()) {
+    if (_flutterProject.manifest.deferredComponents != null && isDeferredComponentsTargets() && !isDebug()) {
       results[kDeferredComponents] = 'true';
     }
     if (argumentResults.wasParsed(FlutterOptions.kExtraFrontEndOptions)) {
@@ -311,14 +291,14 @@ class AssembleCommand extends FlutterCommand {
     Target? target;
     List<String> decodedDefines;
     try {
-      decodedDefines = decodeDartDefines(environment.defines, kDartDefines);
+      decodedDefines = decodeDartDefines(_environment.defines, kDartDefines);
     } on FormatException {
       throwToolExit(
         'Error parsing assemble command: your generated configuration may be out of date. '
         "Try re-running 'flutter build ios' or the appropriate build command."
       );
     }
-    if (FlutterProject.current().manifest.deferredComponents != null
+    if (_flutterProject.manifest.deferredComponents != null
         && decodedDefines.contains('validate-deferred-components=true')
         && deferredTargets.isNotEmpty
         && !isDebug()) {
@@ -336,10 +316,10 @@ class AssembleCommand extends FlutterCommand {
     final ArgResults argumentResults = argResults!;
     final BuildResult result = await _buildSystem.build(
       target!,
-      environment,
+      _environment,
       buildSystemConfig: BuildSystemConfig(
         resourcePoolSize: argumentResults.wasParsed('resource-pool-size')
-          ? int.tryParse(stringArgDeprecated('resource-pool-size')!)
+          ? int.tryParse(stringArg('resource-pool-size')!)
           : null,
         ),
       );
@@ -356,23 +336,19 @@ class AssembleCommand extends FlutterCommand {
     globals.printTrace('build succeeded.');
 
     if (argumentResults.wasParsed('build-inputs')) {
-      writeListIfChanged(result.inputFiles, stringArgDeprecated('build-inputs')!);
+      writeListIfChanged(result.inputFiles, stringArg('build-inputs')!);
     }
     if (argumentResults.wasParsed('build-outputs')) {
-      writeListIfChanged(result.outputFiles, stringArgDeprecated('build-outputs')!);
+      writeListIfChanged(result.outputFiles, stringArg('build-outputs')!);
     }
     if (argumentResults.wasParsed('performance-measurement-file')) {
       final File outFile = globals.fs.file(argumentResults['performance-measurement-file']);
       writePerformanceData(result.performance.values, outFile);
     }
     if (argumentResults.wasParsed('depfile')) {
-      final File depfileFile = globals.fs.file(stringArgDeprecated('depfile'));
+      final File depfileFile = globals.fs.file(stringArg('depfile'));
       final Depfile depfile = Depfile(result.inputFiles, result.outputFiles);
-      final DepfileService depfileService = DepfileService(
-        fileSystem: globals.fs,
-        logger: globals.logger,
-      );
-      depfileService.writeToFile(depfile, globals.fs.file(depfileFile));
+      _environment.depFileService.writeToFile(depfile, globals.fs.file(depfileFile));
     }
     return FlutterCommandResult.success();
   }
